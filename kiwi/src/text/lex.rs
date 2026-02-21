@@ -83,7 +83,7 @@ impl Into<&[u8]> for Lexeme {
 
 impl Into<&str> for Lexeme {
     fn into(self) -> &str {
-        unsafe{str::from_utf8_unchecked(self.into())}
+        unsafe{ str::from_utf8_unchecked(self.into()) }
     }
 }
 
