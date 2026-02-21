@@ -1,4 +1,4 @@
-use std::slice;
+use std::{marker::PhantomData, slice};
 
 #[derive(Clone, Copy)]
 union LexemeData {
@@ -20,7 +20,7 @@ pub struct Lexeme<'a> {
 
 impl<'a> Lexeme<'a> {
     pub fn empty() -> Self {
-        Self { data: LexemeData { raw: 1 }, len: 0 }
+        Self { data: LexemeData { raw: 1 }, len: 0, _marker: PhantomData}
     }
 
     pub unsafe fn as_ptr(&self) -> *const u8 {
@@ -81,11 +81,13 @@ impl<'a> From<&str> for Lexeme<'a> {
             Lexeme {
                 data: LexemeData { raw: (u64::from_be_bytes(bytes) << 1) | 1 },
                 len,
+                _marker: PhantomData
             }
         } else {
             Lexeme {
                 data: LexemeData { ptr: item.as_ptr() },
                 len,
+                _marker: PhantomData
             }
         }
     }
@@ -135,7 +137,7 @@ pub struct Token<'a> {
 
 impl<'a> Token<'a> {
     pub fn new(
-        lexeme: Lexeme,
+        lexeme: Lexeme<'a>,
         tag: TokenType,
         span: Span
     ) -> Self {
