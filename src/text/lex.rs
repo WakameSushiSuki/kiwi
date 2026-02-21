@@ -19,6 +19,10 @@ pub struct Lexeme {
 }
 
 impl Lexeme {
+    pub fn empty() -> Self {
+        Self { data: LexemeData { raw: 1 }, len: 0 }
+    }
+
     pub fn as_ptr(&self) -> *const u8 {
         unsafe { self.data.ptr }
     }
@@ -68,6 +72,23 @@ impl From<&str> for Lexeme {
         }
     }
 }
+
+#[derive(Clone, Copy)]
+pub struct Span {
+    pub line: u32,
+    pub col: u16
+}
+
+impl Span {
+    pub fn new(line: u32, col: u16) -> Self {
+        Self { line: line, col: col }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(0, 0);
+    }
+}
+
 #[repr(u8)]
 pub enum TokenType {
     Empty, Ident, Int, Float,
@@ -78,4 +99,27 @@ pub enum TokenType {
 pub struct Token {
     pub lexeme: Lexeme,
     pub tag: TokenType,
+    pub span: Span,
+}
+
+impl Token {
+    pub fn new(
+        lexeme: Lexeme,
+        tag: TokenType,
+        span: Span
+    ) -> Self {
+        Self {
+            lexeme: lexeme,
+            tag: tag,
+            span: span,
+        }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(
+            Lexeme::empty(),
+            TokenType::Empty,
+            Span::empty
+        )
+    }
 }
