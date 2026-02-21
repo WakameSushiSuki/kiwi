@@ -1,0 +1,17 @@
+import std::format;
+import std::time;
+import std::io;
+
+void main() {
+    static const format::column column = format::column(
+        2, '0', format::Align::LEFT
+    );
+
+    time::Timestamp t = time::system::local24h();
+
+    stdout::init();
+    stdout << "Timestamp: "
+           << column(t.h) << ':'
+           << column(t.m) << ':'
+           << column(t.s) << CR;
+}
