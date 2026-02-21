@@ -1,5 +1,4 @@
 use std::slice;
-use std::collections::HashSet;
 
 #[derive(Clone, Copy)]
 union LexemeData {
@@ -40,14 +39,14 @@ impl Lexeme {
     }
 
     pub unsafe fn as_raw_inline(&self) -> [u8; 8] {
-        (unsafe { self.data.raw } >> 1).to_be_bytes()
+        (unsafe{ self.data.raw } >> 1).to_be_bytes()
     }
 
     pub fn as_value(&self) -> LexemeValue<'_> {
         if self.is_inlined() {
-            LexemeValue::Inlined(self.as_raw_inline(), self.len)
+            LexemeValue::Inlined(unsafe{ self.as_raw_inline() }, self.len)
         } else {
-            LexemeValue::Slice(self.as_raw_slice())
+            LexemeValue::Slice(unsafe{ self.as_raw_slice() })
         }
     }
 }
@@ -73,18 +72,18 @@ impl From<&str> for Lexeme {
     }
 }
 
-impl into<&[u8]> for Lexeme {
-    fn into(&self) -> &[u8] {
+impl Into<&[u8]> for Lexeme {
+    fn into(self) -> &[u8] {
         match self.as_value() {
-            Inlined(arr, len) => arr[..len],
-            Slice(slice) => slice,
+            LexemeValue::Inlined(arr, len) => arr[..len],
+            LexemeValue::Slice(slice) => slice,
         }
     }
 }
 
 impl Into<&str> for Lexeme {
-    fn into(&self) -> &str {
-        str::raw_utf8_unchecked(self.into())
+    fn into(self) -> &str {
+        unsafe{str::from_utf8_unchecked(self.into())}
     }
 }
 
@@ -105,6 +104,7 @@ impl Span {
 }
 
 #[repr(u8)]
+#[derive(Debug, Clone, Copy)]
 pub enum TokenType {
     Empty, Ident, Int, Float,
     Char, Str,
