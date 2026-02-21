@@ -12,12 +12,13 @@ pub enum LexemeValue<'a> {
 }
 
 #[derive(Clone, Copy)]
-pub struct Lexeme {
+pub struct Lexeme<'a> {
     data: LexemeData,
     len: usize,
+    _marker: PhantomData<&'a u8>,
 }
 
-impl Lexeme {
+impl<'a> Lexeme<'a> {
     pub fn empty() -> Self {
         Self { data: LexemeData { raw: 1 }, len: 0 }
     }
@@ -49,9 +50,27 @@ impl Lexeme {
             LexemeValue::Slice(unsafe{ self.as_raw_slice() })
         }
     }
+
+    pub fn as_slice(&self) -> &[u8] {
+        unsafe {
+            if self.is_inlined() {
+                // Data is truncated to len
+                let ptr = &self.data.raw as *const u64 as *const u8;
+                std::slice::from_raw_parts(ptr, self.len)
+            } else {
+                self.as_raw_slice()
+            }
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        // UTF-8 validated before or during lexing, and inlined strings
+        // are always ASCII
+        unsafe { str::from_utf8_unchecked(self.as_slice()) }
+    }
 }
 
-impl From<&str> for Lexeme {
+impl<'a> From<&str> for Lexeme<'a> {
     fn from(item: &str) -> Self {
         let len = item.len();
 
@@ -60,7 +79,7 @@ impl From<&str> for Lexeme {
             bytes[..len].copy_from_slice(item.as_bytes());
 
             Lexeme {
-                data: LexemeData { raw: u64::from_be_bytes(bytes) },
+                data: LexemeData { raw: (u64::from_be_bytes(bytes) << 1) | 1 },
                 len,
             }
         } else {
@@ -72,18 +91,15 @@ impl From<&str> for Lexeme {
     }
 }
 
-impl Into<&[u8]> for Lexeme {
-    fn into(self) -> &[u8] {
-        match self.as_value() {
-            LexemeValue::Inlined(arr, len) => arr[..len],
-            LexemeValue::Slice(slice) => slice,
-        }
+impl<'a> AsRef<[u8]> for Lexeme<'a> {
+    fn as_ref(&self) -> &[u8] {
+        self.as_slice()
     }
 }
 
-impl Into<&str> for Lexeme {
-    fn into(self) -> &str {
-        unsafe{ str::from_utf8_unchecked(self.into()) }
+impl<'a> AsRef<str> for Lexeme<'a> {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -111,13 +127,13 @@ pub enum TokenType {
 }
 
 #[derive(Clone, Copy)]
-pub struct Token {
-    pub lexeme: Lexeme,
+pub struct Token<'a> {
+    pub lexeme: Lexeme<'a>,
     pub tag: TokenType,
     pub span: Span,
 }
 
-impl Token {
+impl<'a> Token<'a> {
     pub fn new(
         lexeme: Lexeme,
         tag: TokenType,
