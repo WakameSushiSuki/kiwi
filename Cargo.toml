@@ -1,6 +1,3 @@
-[package]
-name = "kiwi"
-version = "0.1"
-
-[dependencies]
-
+[workspace]
+members = ["kiwi"]
+resolver = "3"
