@@ -137,7 +137,7 @@ pub struct Token<'a> {
 
 impl<'a> Token<'a> {
     pub fn new(
-        lexeme: Lexeme<'a>,
+        lexeme: Lexeme,
         tag: TokenType,
         span: Span
     ) -> Self {
