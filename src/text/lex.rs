@@ -23,7 +23,7 @@ impl Lexeme {
         Self { data: LexemeData { raw: 1 }, len: 0 }
     }
 
-    pub fn as_ptr(&self) -> *const u8 {
+    pub unsafe fn as_ptr(&self) -> *const u8 {
         unsafe { self.data.ptr }
     }
 
@@ -35,19 +35,19 @@ impl Lexeme {
         (unsafe { self.data.raw } & 1) != 0
     }
 
-    pub fn as_slice(&self) -> &[u8] {
+    pub unsafe fn as_raw_slice(&self) -> &[u8] {
         unsafe { slice::from_raw_parts(self.data.ptr, self.len) }
     }
 
-    pub fn as_inline(&self) -> [u8; 8] {
+    pub unsafe fn as_raw_inline(&self) -> [u8; 8] {
         (unsafe { self.data.raw } >> 1).to_be_bytes()
     }
 
     pub fn as_value(&self) -> LexemeValue<'_> {
         if self.is_inlined() {
-            LexemeValue::Inlined(self.as_inline(), self.len)
+            LexemeValue::Inlined(self.as_raw_inline(), self.len)
         } else {
-            LexemeValue::Slice(self.as_slice())
+            LexemeValue::Slice(self.as_raw_slice())
         }
     }
 }
@@ -73,6 +73,21 @@ impl From<&str> for Lexeme {
     }
 }
 
+impl into<&[u8]> for Lexeme {
+    fn into(&self) -> &[u8] {
+        match self.as_value() {
+            Inlined(arr, len) => arr[..len],
+            Slice(slice) => slice,
+        }
+    }
+}
+
+impl Into<&str> for Lexeme {
+    fn into(&self) -> &str {
+        str::raw_utf8_unchecked(self.into())
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Span {
     pub line: u32,
@@ -85,7 +100,7 @@ impl Span {
     }
 
     pub fn empty() -> Self {
-        Self::new(0, 0);
+        Self::new(0, 0)
     }
 }
 
@@ -119,7 +134,7 @@ impl Token {
         Self::new(
             Lexeme::empty(),
             TokenType::Empty,
-            Span::empty
+            Span::empty()
         )
     }
 }
