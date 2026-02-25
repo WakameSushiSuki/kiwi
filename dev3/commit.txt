@@ -1,0 +1,9 @@
+Fixed some ownership issues, moved Intos to as_* methods, added AsRefs
+
+Added:
+    - 'a for Lexeme
+    - 'a for Token
+    - _marker PhantomData for Lexeme
+Changed:
+    - Moved Lexeme::into<&[u8]>() to Lexeme::as_slice()
+    - Moved Lexeme::into<&str>() to Lexeme::as_str()
